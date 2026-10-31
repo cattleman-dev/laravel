@@ -92,3 +92,7 @@ The connection it adds:
 composer install
 vendor/bin/phpunit
 ```
+
+## Licence
+
+MIT. See [LICENSE](LICENSE).
