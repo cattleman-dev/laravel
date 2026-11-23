@@ -32,6 +32,7 @@ class SocketsSetupCommand extends Command
         {--host= : The worker\'s host, or its URL}
         {--port= : The worker\'s port (default 443)}
         {--scheme= : https or http (default https)}
+        {--local : Use the cattleman/sockets image running on this machine}
         {--with-echo : Also set up Laravel Echo for the frontend}
         {--without-echo : Don\'t set up Laravel Echo}
         {--without-composer : Don\'t install pusher/pusher-php-server}
@@ -42,6 +43,16 @@ class SocketsSetupCommand extends Command
     protected $description = 'Set up broadcasting through a Cattleman Sockets deployment';
 
     private const PUSHER_SDK = 'pusher/pusher-php-server';
+
+    /** What the cattleman/sockets image starts with, unless it's told otherwise. */
+    private const LOCAL = [
+        'appId' => 'app-id',
+        'key' => 'app-key',
+        'secret' => 'app-secret',
+        'host' => 'localhost',
+        'port' => '6001',
+        'scheme' => 'http',
+    ];
 
     /** Broadcast connections it's fine to switch away from without asking. */
     private const REPLACEABLE_CONNECTIONS = ['', 'null', 'log', 'cattleman'];
@@ -66,6 +77,19 @@ class SocketsSetupCommand extends Command
         }
 
         $this->newLine();
+
+        if ($this->option('local')) {
+            $this->components->info('Sockets is set up. Broadcast events now go to Sockets on this machine.');
+            $this->components->bulletList([
+                "Start it: <fg=cyan>docker run --rm -p {$credentials->port}:6001 cattleman/sockets</>",
+                'Check the connection: <fg=cyan>php artisan cattleman:sockets:check</>',
+                'If your config is cached, run <fg=cyan>php artisan config:clear</>',
+                'Where the app is deployed, set the CATTLEMAN_* variables to your deployment\'s',
+            ]);
+
+            return self::SUCCESS;
+        }
+
         $this->components->info('Sockets is set up. Broadcast events now go through your Cattleman worker.');
         $this->components->bulletList([
             'Check the connection: <fg=cyan>php artisan cattleman:sockets:check</>',
@@ -86,6 +110,11 @@ class SocketsSetupCommand extends Command
             'port' => $this->option('port'),
             'scheme' => $this->option('scheme'),
         ], fn (mixed $value): bool => is_string($value) && trim($value) !== '');
+
+        // Anything given on the command line wins over the image's defaults.
+        if ($this->option('local')) {
+            $values += self::LOCAL;
+        }
 
         $credentials = SocketsCredentials::make(...$values);
 

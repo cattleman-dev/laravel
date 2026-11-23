@@ -57,6 +57,29 @@ class SocketsSetupCommandTest extends TestCase
         $this->assertSame($files, array_map(fn (string $file) => $this->read($file), $paths));
     }
 
+    public function testLocalPointsTheAppAtTheSocketsImage(): void
+    {
+        $this->artisan('cattleman:sockets', ['--local' => true, '--with-echo' => true, '--without-node' => true, '--no-interaction' => true])
+            ->expectsOutputToContain('docker run --rm -p 6001:6001 cattleman/sockets')
+            ->assertSuccessful();
+
+        $env = $this->read('.env');
+        $this->assertStringContainsString('BROADCAST_CONNECTION=cattleman', $env);
+        $this->assertStringContainsString("CATTLEMAN_APP_ID=app-id\nCATTLEMAN_APP_KEY=app-key\nCATTLEMAN_APP_SECRET=app-secret\nCATTLEMAN_HOST=localhost\nCATTLEMAN_PORT=6001\nCATTLEMAN_SCHEME=http", $env);
+
+        // Deployments don't use the image's defaults.
+        $this->assertStringContainsString("CATTLEMAN_HOST=\nCATTLEMAN_PORT=443\nCATTLEMAN_SCHEME=https", $this->read('.env.example'));
+    }
+
+    public function testLocalKeepsWhatWasGivenOnTheCommandLine(): void
+    {
+        $this->artisan('cattleman:sockets', ['--local' => true, '--key' => 'my-key', '--host' => 'sockets', '--port' => '7000', '--without-node' => true, '--no-interaction' => true])
+            ->expectsOutputToContain('docker run --rm -p 7000:6001 cattleman/sockets')
+            ->assertSuccessful();
+
+        $this->assertStringContainsString("CATTLEMAN_APP_ID=app-id\nCATTLEMAN_APP_KEY=my-key\nCATTLEMAN_APP_SECRET=app-secret\nCATTLEMAN_HOST=sockets\nCATTLEMAN_PORT=7000\nCATTLEMAN_SCHEME=http", $this->read('.env'));
+    }
+
     public function testFailsWithoutCredentialsWhenNotInteractive(): void
     {
         $this->artisan('cattleman:sockets', ['--app-id' => '1', '--no-interaction' => true])

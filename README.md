@@ -52,11 +52,30 @@ php artisan cattleman:sockets --no-interaction \
 | `--app-id`, `--key`, `--secret` | The deployment's credentials |
 | `--host` | The worker's hostname or URL (a URL sets `--scheme` and `--port` too) |
 | `--port`, `--scheme` | Default `443` and `https` |
+| `--local` | Use the `cattleman/sockets` image on this machine (see below) |
 | `--with-echo` / `--without-echo` | Set up Laravel Echo, or don't ask |
 | `--without-composer` | Don't install `pusher/pusher-php-server` |
 | `--without-node` | Don't install `laravel-echo` and `pusher-js` |
 | `--composer` | The Composer binary to use |
 | `--force` | Replace existing values without asking |
+
+### Local development
+
+To build against Sockets without a deployment, run the
+[`cattleman/sockets`](https://hub.docker.com/r/cattleman/sockets) image, which
+runs the same worker on your machine:
+
+```bash
+docker run --rm -p 6001:6001 cattleman/sockets
+php artisan cattleman:sockets --local
+```
+
+`--local` fills in the image's defaults (`app-id`, `app-key`, `app-secret`,
+`localhost`, port `6001`, `http`), so it asks for no credentials. Give any of
+`--app-id`, `--key`, `--secret`, `--host` or `--port` to change one: for an
+app that runs in a container beside it, `--host` is the image's service name.
+The browser still reaches it on `localhost`, so set `VITE_CATTLEMAN_HOST`
+to that.
 
 ### Checking the connection
 
